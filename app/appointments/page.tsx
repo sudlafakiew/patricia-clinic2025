@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Plus, Calendar as CalendarIcon, Clock } from 'lucide-react'
+import type { Database } from '@/types/supabase'
+import { Plus, Calendar as CalendarIcon, Clock, Edit, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { format, addDays, startOfWeek, endOfWeek } from 'date-fns'
 import { th } from 'date-fns/locale'
@@ -13,6 +14,7 @@ export default function AppointmentsPage() {
   const [showModal, setShowModal] = useState(false)
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [viewMode, setViewMode] = useState<'day' | 'week'>('day')
+  const [selectedAppointment, setSelectedAppointment] = useState<any>(null)
 
   useEffect(() => {
     fetchAppointments()
@@ -63,11 +65,16 @@ export default function AppointmentsPage() {
     return <span className={`badge ${className}`}>{label}</span>
   }
 
-  const updateStatus = async (id: string, status: string) => {
+  const updateStatus = async (
+    id: string,
+    status: 'pending' | 'confirmed' | 'cancelled' | 'completed'
+  ) => {
     try {
       const { error } = await supabase
         .from('appointments')
-        .update({ status })
+        .update(
+          { status } as Database['public']['Tables']['appointments']['Update']
+        )
         .eq('id', id)
 
       if (error) throw error
@@ -76,6 +83,24 @@ export default function AppointmentsPage() {
     } catch (error) {
       console.error('Error updating status:', error)
       toast.error('เกิดข้อผิดพลาดในการอัพเดทสถานะ')
+    }
+  }
+
+  const deleteAppointment = async (id: string) => {
+    if (!confirm('คุณแน่ใจหรือไม่ที่จะลบนัดหมายนี้?')) return
+
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+      toast.success('ลบนัดหมายสำเร็จ')
+      fetchAppointments()
+    } catch (error) {
+      console.error('Error deleting appointment:', error)
+      toast.error('เกิดข้อผิดพลาดในการลบนัดหมาย')
     }
   }
 
@@ -88,7 +113,10 @@ export default function AppointmentsPage() {
             <p className="text-gray-600 mt-1">จัดการตารางนัดหมายของคลินิก</p>
           </div>
           <button
-            onClick={() => setShowModal(true)}
+            onClick={() => {
+              setSelectedAppointment(null)
+              setShowModal(true)
+            }}
             className="btn btn-primary flex items-center space-x-2"
           >
             <Plus className="w-5 h-5" />
@@ -222,6 +250,21 @@ export default function AppointmentsPage() {
                       ยกเลิก
                     </button>
                   )}
+                  <button
+                    onClick={() => {
+                      setSelectedAppointment(appointment)
+                      setShowModal(true)
+                    }}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => deleteAppointment(appointment.id)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             </div>
@@ -231,9 +274,14 @@ export default function AppointmentsPage() {
 
       {showModal && (
         <AppointmentModal
-          onClose={() => setShowModal(false)}
+          appointment={selectedAppointment}
+          onClose={() => {
+            setShowModal(false)
+            setSelectedAppointment(null)
+          }}
           onSave={() => {
             setShowModal(false)
+            setSelectedAppointment(null)
             fetchAppointments()
           }}
           selectedDate={selectedDate}
@@ -243,15 +291,15 @@ export default function AppointmentsPage() {
   )
 }
 
-function AppointmentModal({ onClose, onSave, selectedDate }: any) {
+function AppointmentModal({ appointment, onClose, onSave, selectedDate }: any) {
   const [formData, setFormData] = useState({
-    customer_id: '',
-    service_id: '',
-    staff_id: '',
-    appointment_date: format(selectedDate, 'yyyy-MM-dd'),
-    start_time: '09:00',
-    end_time: '10:00',
-    notes: ''
+    customer_id: appointment?.customer_id || '',
+    service_id: appointment?.service_id || '',
+    staff_id: appointment?.staff_id || '',
+    appointment_date: appointment?.appointment_date || format(selectedDate, 'yyyy-MM-dd'),
+    start_time: appointment?.start_time || '09:00',
+    end_time: appointment?.end_time || '10:00',
+    notes: appointment?.notes || ''
   })
   const [customers, setCustomers] = useState<any[]>([])
   const [services, setServices] = useState<any[]>([])
@@ -295,16 +343,28 @@ function AppointmentModal({ onClose, onSave, selectedDate }: any) {
     setSaving(true)
 
     try {
-      const { error } = await supabase
-        .from('appointments')
-        .insert([formData])
+      if (appointment) {
+        // Update existing appointment
+        const { error } = await supabase
+          .from('appointments')
+          .update(formData)
+          .eq('id', appointment.id)
 
-      if (error) throw error
-      toast.success('สร้างนัดหมายสำเร็จ')
+        if (error) throw error
+        toast.success('อัพเดทนัดหมายสำเร็จ')
+      } else {
+        // Create new appointment
+        const { error } = await supabase
+          .from('appointments')
+          .insert([formData])
+
+        if (error) throw error
+        toast.success('สร้างนัดหมายสำเร็จ')
+      }
       onSave()
     } catch (error) {
-      console.error('Error creating appointment:', error)
-      toast.error('เกิดข้อผิดพลาดในการสร้างนัดหมาย')
+      console.error('Error saving appointment:', error)
+      toast.error('เกิดข้อผิดพลาดในการบันทึกนัดหมาย')
     } finally {
       setSaving(false)
     }
@@ -314,7 +374,9 @@ function AppointmentModal({ onClose, onSave, selectedDate }: any) {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-2xl w-full">
         <div className="p-6 border-b">
-          <h2 className="text-2xl font-bold text-gray-900">สร้างนัดหมายใหม่</h2>
+          <h2 className="text-2xl font-bold text-gray-900">
+            {appointment ? 'แก้ไขนัดหมาย' : 'สร้างนัดหมายใหม่'}
+          </h2>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -419,7 +481,7 @@ function AppointmentModal({ onClose, onSave, selectedDate }: any) {
               ยกเลิก
             </button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? 'กำลังบันทึก...' : 'สร้างนัดหมาย'}
+              {saving ? 'กำลังบันทึก...' : appointment ? 'อัพเดทนัดหมาย' : 'สร้างนัดหมาย'}
             </button>
           </div>
         </form>

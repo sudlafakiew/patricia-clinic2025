@@ -118,95 +118,96 @@ CREATE INDEX idx_sales_created_at ON sales(created_at);
 CREATE INDEX idx_sales_customer ON sales(customer_id);
 
 -- Row Level Security (RLS) Policies
--- Enable RLS on all tables
-ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE staff ENABLE ROW LEVEL SECURITY;
-ALTER TABLE services ENABLE ROW LEVEL SECURITY;
-ALTER TABLE products ENABLE ROW LEVEL SECURITY;
-ALTER TABLE appointments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE treatments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE sales ENABLE ROW LEVEL SECURITY;
-ALTER TABLE sale_items ENABLE ROW LEVEL SECURITY;
+-- RLS is DISABLED to allow public/anonymous access via anon key
+-- For production, implement proper authentication and re-enable RLS with appropriate policies
+-- ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE staff ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE services ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE appointments ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE treatments ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE sales ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE sale_items ENABLE ROW LEVEL SECURITY;
 
--- Customers policies
-CREATE POLICY "Enable read access for all authenticated users" ON customers
-  FOR SELECT USING (auth.role() = 'authenticated');
+-- Customers policies (commented out - RLS disabled)
+-- CREATE POLICY "Enable read access for all authenticated users" ON customers
+--   FOR SELECT USING (auth.role() = 'authenticated');
 
-CREATE POLICY "Enable insert for authenticated users" ON customers
-  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+-- CREATE POLICY "Enable insert for authenticated users" ON customers
+--   FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
-CREATE POLICY "Enable update for authenticated users" ON customers
-  FOR UPDATE USING (auth.role() = 'authenticated');
+-- CREATE POLICY "Enable update for authenticated users" ON customers
+--   FOR UPDATE USING (auth.role() = 'authenticated');
 
-CREATE POLICY "Enable delete for admin users" ON customers
-  FOR DELETE USING (
-    EXISTS (
-      SELECT 1 FROM staff 
-      WHERE staff.user_id = auth.uid() 
-      AND staff.role = 'admin'
-    )
-  );
+-- CREATE POLICY "Enable delete for admin users" ON customers
+--   FOR DELETE USING (
+--     EXISTS (
+--       SELECT 1 FROM staff 
+--       WHERE staff.user_id = auth.uid() 
+--       AND staff.role = 'admin'
+--     )
+--   );
 
--- Staff policies
-CREATE POLICY "Enable read access for all authenticated users" ON staff
-  FOR SELECT USING (auth.role() = 'authenticated');
+-- Staff policies (commented out - RLS disabled)
+-- CREATE POLICY "Enable read access for all authenticated users" ON staff
+--   FOR SELECT USING (auth.role() = 'authenticated');
 
-CREATE POLICY "Enable all operations for admin users" ON staff
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM staff 
-      WHERE staff.user_id = auth.uid() 
-      AND staff.role = 'admin'
-    )
-  );
+-- CREATE POLICY "Enable all operations for admin users" ON staff
+--   FOR ALL USING (
+--     EXISTS (
+--       SELECT 1 FROM staff 
+--       WHERE staff.user_id = auth.uid() 
+--       AND staff.role = 'admin'
+--     )
+--   );
 
--- Services policies
-CREATE POLICY "Enable read access for all authenticated users" ON services
-  FOR SELECT USING (auth.role() = 'authenticated');
+-- Services policies (commented out - RLS disabled)
+-- CREATE POLICY "Enable read access for all authenticated users" ON services
+--   FOR SELECT USING (auth.role() = 'authenticated');
 
-CREATE POLICY "Enable all operations for admin users" ON services
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM staff 
-      WHERE staff.user_id = auth.uid() 
-      AND staff.role = 'admin'
-    )
-  );
+-- CREATE POLICY "Enable all operations for admin users" ON services
+--   FOR ALL USING (
+--     EXISTS (
+--       SELECT 1 FROM staff 
+--       WHERE staff.user_id = auth.uid() 
+--       AND staff.role = 'admin'
+--     )
+--   );
 
--- Products policies
-CREATE POLICY "Enable read access for all authenticated users" ON products
-  FOR SELECT USING (auth.role() = 'authenticated');
+-- Products policies (commented out - RLS disabled)
+-- CREATE POLICY "Enable read access for all authenticated users" ON products
+--   FOR SELECT USING (auth.role() = 'authenticated');
 
-CREATE POLICY "Enable insert/update for authenticated users" ON products
-  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+-- CREATE POLICY "Enable insert/update for authenticated users" ON products
+--   FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
-CREATE POLICY "Enable update for authenticated users" ON products
-  FOR UPDATE USING (auth.role() = 'authenticated');
+-- CREATE POLICY "Enable update for authenticated users" ON products
+--   FOR UPDATE USING (auth.role() = 'authenticated');
 
-CREATE POLICY "Enable delete for admin users" ON products
-  FOR DELETE USING (
-    EXISTS (
-      SELECT 1 FROM staff 
-      WHERE staff.user_id = auth.uid() 
-      AND staff.role = 'admin'
-    )
-  );
+-- CREATE POLICY "Enable delete for admin users" ON products
+--   FOR DELETE USING (
+--     EXISTS (
+--       SELECT 1 FROM staff 
+--       WHERE staff.user_id = auth.uid() 
+--       AND staff.role = 'admin'
+--     )
+--   );
 
--- Appointments policies
-CREATE POLICY "Enable all operations for authenticated users" ON appointments
-  FOR ALL USING (auth.role() = 'authenticated');
+-- Appointments policies (commented out - RLS disabled)
+-- CREATE POLICY "Enable all operations for authenticated users" ON appointments
+--   FOR ALL USING (auth.role() = 'authenticated');
 
--- Treatments policies
-CREATE POLICY "Enable all operations for authenticated users" ON treatments
-  FOR ALL USING (auth.role() = 'authenticated');
+-- Treatments policies (commented out - RLS disabled)
+-- CREATE POLICY "Enable all operations for authenticated users" ON treatments
+--   FOR ALL USING (auth.role() = 'authenticated');
 
--- Sales policies
-CREATE POLICY "Enable all operations for authenticated users" ON sales
-  FOR ALL USING (auth.role() = 'authenticated');
+-- Sales policies (commented out - RLS disabled)
+-- CREATE POLICY "Enable all operations for authenticated users" ON sales
+--   FOR ALL USING (auth.role() = 'authenticated');
 
--- Sale items policies
-CREATE POLICY "Enable all operations for authenticated users" ON sale_items
-  FOR ALL USING (auth.role() = 'authenticated');
+-- Sale items policies (commented out - RLS disabled)
+-- CREATE POLICY "Enable all operations for authenticated users" ON sale_items
+--   FOR ALL USING (auth.role() = 'authenticated');
 
 -- Functions for automatic updates
 -- Update customer total_spent when sale is created

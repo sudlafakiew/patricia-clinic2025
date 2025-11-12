@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Plus, Receipt as ReceiptIcon, Download, Calendar as CalendarIcon } from 'lucide-react'
+import { Plus, Receipt as ReceiptIcon, Download, Calendar as CalendarIcon, Edit, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { th } from 'date-fns/locale'
@@ -13,6 +13,7 @@ export default function SalesPage() {
   const [stats, setStats] = useState<any>({})
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [selectedSale, setSelectedSale] = useState<any>(null)
   const [dateRange, setDateRange] = useState({
     start: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
     end: format(endOfMonth(new Date()), 'yyyy-MM-dd')
@@ -92,6 +93,28 @@ export default function SalesPage() {
     return methodMap[method] || method
   }
 
+  const handleDeleteSale = async (id: string) => {
+    if (!confirm('คุณแน่ใจหรือไม่ที่จะลบบิลขายนี้?')) return
+
+    try {
+      // Delete sale items first
+      await supabase.from('sale_items').delete().eq('sale_id', id)
+      
+      // Then delete the sale
+      const { error } = await supabase
+        .from('sales')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+      toast.success('ลบบิลขายสำเร็จ')
+      fetchSales()
+    } catch (error) {
+      console.error('Error deleting sale:', error)
+      toast.error('เกิดข้อผิดพลาดในการลบบิลขาย')
+    }
+  }
+
   return (
     <div className="p-8">
       <div className="mb-8">
@@ -101,7 +124,10 @@ export default function SalesPage() {
             <p className="text-gray-600 mt-1">จัดการการขายและดูรายงานยอดขาย</p>
           </div>
           <button
-            onClick={() => setShowModal(true)}
+            onClick={() => {
+              setSelectedSale(null)
+              setShowModal(true)
+            }}
             className="btn btn-primary flex items-center space-x-2"
           >
             <Plus className="w-5 h-5" />
@@ -250,9 +276,23 @@ export default function SalesPage() {
                     {getStatusBadge(sale.payment_status)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <button className="text-primary-600 hover:text-primary-900">
-                      <ReceiptIcon className="w-4 h-4" />
-                    </button>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => {
+                          setSelectedSale(sale)
+                          setShowModal(true)
+                        }}
+                        className="text-blue-600 hover:text-blue-900"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSale(sale.id)}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -263,9 +303,14 @@ export default function SalesPage() {
 
       {showModal && (
         <SaleModal
-          onClose={() => setShowModal(false)}
+          sale={selectedSale}
+          onClose={() => {
+            setShowModal(false)
+            setSelectedSale(null)
+          }}
           onSave={() => {
             setShowModal(false)
+            setSelectedSale(null)
             fetchSales()
           }}
         />
@@ -274,13 +319,13 @@ export default function SalesPage() {
   )
 }
 
-function SaleModal({ onClose, onSave }: any) {
+function SaleModal({ sale, onClose, onSave }: any) {
   const [formData, setFormData] = useState({
-    customer_id: '',
-    staff_id: '',
-    payment_method: 'cash' as 'cash' | 'credit_card' | 'transfer',
-    payment_status: 'completed' as 'pending' | 'completed' | 'refunded',
-    notes: ''
+    customer_id: sale?.customer_id || '',
+    staff_id: sale?.staff_id || '',
+    payment_method: sale?.payment_method || 'cash' as 'cash' | 'credit_card' | 'transfer',
+    payment_status: sale?.payment_status || 'completed' as 'pending' | 'completed' | 'refunded',
+    notes: sale?.notes || ''
   })
   const [items, setItems] = useState<any[]>([])
   const [customers, setCustomers] = useState<any[]>([])
@@ -305,6 +350,24 @@ function SaleModal({ onClose, onSave }: any) {
     setStaff(staffRes.data || [])
     setServices(servicesRes.data || [])
     setProducts(productsRes.data || [])
+
+    // If editing, load existing sale items
+    if (sale) {
+      const { data: saleItems } = await supabase
+        .from('sale_items')
+        .select('*')
+        .eq('sale_id', sale.id)
+
+      if (saleItems) {
+        const itemsWithNames = saleItems.map((item: any) => ({
+          ...item,
+          name: item.item_type === 'service'
+            ? servicesRes.data?.find(s => s.id === item.item_id)?.name || 'Unknown'
+            : productsRes.data?.find(p => p.id === item.item_id)?.name || 'Unknown'
+        }))
+        setItems(itemsWithNames)
+      }
+    }
   }
 
   const addItem = (type: 'service' | 'product', id: string) => {
@@ -347,39 +410,70 @@ function SaleModal({ onClose, onSave }: any) {
     setSaving(true)
 
     try {
-      // Create sale
-      const { data: saleData, error: saleError } = await supabase
-        .from('sales')
-        .insert([{
-          ...formData,
-          total_amount: totalAmount
-        }])
-        .select()
-        .single()
+      if (sale) {
+        // Update existing sale
+        const { error: updateError } = await supabase
+          .from('sales')
+          .update({
+            ...formData,
+            total_amount: totalAmount
+          })
+          .eq('id', sale.id)
 
-      if (saleError) throw saleError
+        if (updateError) throw updateError
 
-      // Create sale items
-      const saleItems = items.map(item => ({
-        sale_id: saleData.id,
-        item_type: item.item_type,
-        item_id: item.item_id,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        subtotal: item.subtotal
-      }))
+        // Delete old items and create new ones
+        await supabase.from('sale_items').delete().eq('sale_id', sale.id)
 
-      const { error: itemsError } = await supabase
-        .from('sale_items')
-        .insert(saleItems)
+        const saleItems = items.map(item => ({
+          sale_id: sale.id,
+          item_type: item.item_type,
+          item_id: item.item_id,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          subtotal: item.subtotal
+        }))
 
-      if (itemsError) throw itemsError
+        const { error: itemsError } = await supabase
+          .from('sale_items')
+          .insert(saleItems)
 
-      toast.success('สร้างบิลขายสำเร็จ')
+        if (itemsError) throw itemsError
+        toast.success('อัพเดทบิลขายสำเร็จ')
+      } else {
+        // Create new sale
+        const { data: saleData, error: saleError } = await supabase
+          .from('sales')
+          .insert([{
+            ...formData,
+            total_amount: totalAmount
+          }])
+          .select()
+          .single()
+
+        if (saleError) throw saleError
+
+        // Create sale items
+        const saleItems = items.map(item => ({
+          sale_id: saleData.id,
+          item_type: item.item_type,
+          item_id: item.item_id,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          subtotal: item.subtotal
+        }))
+
+        const { error: itemsError } = await supabase
+          .from('sale_items')
+          .insert(saleItems)
+
+        if (itemsError) throw itemsError
+        toast.success('สร้างบิลขายสำเร็จ')
+      }
       onSave()
     } catch (error) {
-      console.error('Error creating sale:', error)
-      toast.error('เกิดข้อผิดพลาดในการสร้างบิลขาย')
+      console.error('Error saving sale:', error)
+      toast.error('เกิดข้อผิดพลาดในการบันทึกบิลขาย')
     } finally {
       setSaving(false)
     }
@@ -389,7 +483,9 @@ function SaleModal({ onClose, onSave }: any) {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6 border-b">
-          <h2 className="text-2xl font-bold text-gray-900">สร้างบิลขายใหม่</h2>
+          <h2 className="text-2xl font-bold text-gray-900">
+            {sale ? 'แก้ไขบิลขาย' : 'สร้างบิลขายใหม่'}
+          </h2>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
@@ -576,7 +672,7 @@ function SaleModal({ onClose, onSave }: any) {
               ยกเลิก
             </button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? 'กำลังบันทึก...' : 'สร้างบิลขาย'}
+              {saving ? 'กำลังบันทึก...' : sale ? 'อัพเดทบิลขาย' : 'สร้างบิลขาย'}
             </button>
           </div>
         </form>
