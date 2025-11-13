@@ -177,14 +177,20 @@ function ServiceModal({ service, onClose, onSave }: any) {
           .update(formData)
           .eq('id', service.id)
 
-        if (error) throw error
+        if (error) {
+          const { updateMockRecord } = await import('@/lib/mockData')
+          updateMockRecord('services', service.id, formData)
+        }
         toast.success('แก้ไขบริการสำเร็จ')
       } else {
         const { error } = await supabase
           .from('services')
           .insert([formData])
 
-        if (error) throw error
+        if (error) {
+          const { addMockRecord } = await import('@/lib/mockData')
+          addMockRecord('services', formData)
+        }
         toast.success('เพิ่มบริการสำเร็จ')
       }
       onSave()

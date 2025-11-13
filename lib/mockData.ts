@@ -1,5 +1,6 @@
 // Mock data for development/testing when Supabase is unavailable
-const mockData = {
+// Using in-memory storage so changes persist during the session
+let mockDataStore = {
   customers: [
     {
       id: '1',
@@ -118,18 +119,45 @@ const mockData = {
 }
 
 export const getMockData = (table: string) => {
-  return (mockData as any)[table] || []
+  return (mockDataStore as any)[table] ? JSON.parse(JSON.stringify((mockDataStore as any)[table])) : []
 }
 
-export const createMockRecord = (table: string, data: any) => {
-  const records = (mockData as any)[table]
+export const addMockRecord = (table: string, data: any) => {
+  const records = (mockDataStore as any)[table]
   if (!records) return null
   
   const newRecord = {
     ...data,
     id: Math.random().toString(36).substr(2, 9),
     created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   }
   records.push(newRecord)
   return newRecord
+}
+
+export const updateMockRecord = (table: string, id: string, data: any) => {
+  const records = (mockDataStore as any)[table]
+  if (!records) return null
+  
+  const index = records.findIndex((r: any) => r.id === id)
+  if (index === -1) return null
+  
+  records[index] = {
+    ...records[index],
+    ...data,
+    updated_at: new Date().toISOString(),
+  }
+  return records[index]
+}
+
+export const deleteMockRecord = (table: string, id: string) => {
+  const records = (mockDataStore as any)[table]
+  if (!records) return null
+  
+  const index = records.findIndex((r: any) => r.id === id)
+  if (index === -1) return null
+  
+  records.splice(index, 1)
+  return true
 }

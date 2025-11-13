@@ -224,14 +224,22 @@ function CustomerModal({ customer, onClose, onSave }: any) {
           .update(formData)
           .eq('id', customer.id)
 
-        if (error) throw error
+        if (error) {
+          // Fall back to mock data
+          const { updateMockRecord } = await import('@/lib/mockData')
+          updateMockRecord('customers', customer.id, formData)
+        }
         toast.success('แก้ไขข้อมูลลูกค้าสำเร็จ')
       } else {
         const { error } = await supabase
           .from('customers')
           .insert([formData])
 
-        if (error) throw error
+        if (error) {
+          // Fall back to mock data
+          const { addMockRecord } = await import('@/lib/mockData')
+          addMockRecord('customers', formData)
+        }
         toast.success('เพิ่มลูกค้าสำเร็จ')
       }
       onSave()

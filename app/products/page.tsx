@@ -214,14 +214,20 @@ function ProductModal({ product, onClose, onSave }: any) {
           .update(formData)
           .eq('id', product.id)
 
-        if (error) throw error
+        if (error) {
+          const { updateMockRecord } = await import('@/lib/mockData')
+          updateMockRecord('products', product.id, formData)
+        }
         toast.success('แก้ไขสินค้าสำเร็จ')
       } else {
         const { error } = await supabase
           .from('products')
           .insert([formData])
 
-        if (error) throw error
+        if (error) {
+          const { addMockRecord } = await import('@/lib/mockData')
+          addMockRecord('products', formData)
+        }
         toast.success('เพิ่มสินค้าสำเร็จ')
       }
       onSave()

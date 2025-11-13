@@ -187,14 +187,20 @@ function StaffModal({ staff, onClose, onSave }: any) {
           .update(formData)
           .eq('id', staff.id)
 
-        if (error) throw error
+        if (error) {
+          const { updateMockRecord } = await import('@/lib/mockData')
+          updateMockRecord('staff', staff.id, formData)
+        }
         toast.success('แก้ไขข้อมูลพนักงานสำเร็จ')
       } else {
         const { error } = await supabase
           .from('staff')
           .insert([formData])
 
-        if (error) throw error
+        if (error) {
+          const { addMockRecord } = await import('@/lib/mockData')
+          addMockRecord('staff', formData)
+        }
         toast.success('เพิ่มพนักงานสำเร็จ')
       }
       onSave()

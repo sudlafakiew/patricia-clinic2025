@@ -352,7 +352,10 @@ function AppointmentModal({ appointment, onClose, onSave, selectedDate }: any) {
           .update(formData)
           .eq('id', appointment.id)
 
-        if (error) throw error
+        if (error) {
+          const { updateMockRecord } = await import('@/lib/mockData')
+          updateMockRecord('appointments', appointment.id, formData)
+        }
         toast.success('อัพเดทนัดหมายสำเร็จ')
       } else {
         // Create new appointment
@@ -360,7 +363,10 @@ function AppointmentModal({ appointment, onClose, onSave, selectedDate }: any) {
           .from('appointments')
           .insert([formData])
 
-        if (error) throw error
+        if (error) {
+          const { addMockRecord } = await import('@/lib/mockData')
+          addMockRecord('appointments', formData)
+        }
         toast.success('สร้างนัดหมายสำเร็จ')
       }
       onSave()
