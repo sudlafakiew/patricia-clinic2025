@@ -24,9 +24,11 @@ export default function StaffPage() {
 
       if (error) throw error
       setStaff(data || [])
-    } catch (error) {
-      console.error('Error fetching staff:', error)
-      toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลพนักงาน')
+    } catch (error: any) {
+      console.warn('Supabase connection failed, using mock data:', error.message)
+      const { getMockData } = await import('@/lib/mockData')
+      setStaff(getMockData('staff'))
+      toast.success('ใช้ข้อมูลตัวอย่าง (ฐานข้อมูลไม่พร้อม)')
     } finally {
       setLoading(false)
     }

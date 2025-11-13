@@ -46,9 +46,11 @@ export default function AppointmentsPage() {
 
       if (error) throw error
       setAppointments(data || [])
-    } catch (error) {
-      console.error('Error fetching appointments:', error)
-      toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลนัดหมาย')
+    } catch (error: any) {
+      console.warn('Supabase connection failed, using mock data:', error.message)
+      const { getMockData } = await import('@/lib/mockData')
+      setAppointments(getMockData('appointments'))
+      toast.success('ใช้ข้อมูลตัวอย่าง (ฐานข้อมูลไม่พร้อม)')
     } finally {
       setLoading(false)
     }

@@ -24,9 +24,11 @@ export default function ServicesPage() {
 
       if (error) throw error
       setServices(data || [])
-    } catch (error) {
-      console.error('Error fetching services:', error)
-      toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลบริการ')
+    } catch (error: any) {
+      console.warn('Supabase connection failed, using mock data:', error.message)
+      const { getMockData } = await import('@/lib/mockData')
+      setServices(getMockData('services'))
+      toast.success('ใช้ข้อมูลตัวอย่าง (ฐานข้อมูลไม่พร้อม)')
     } finally {
       setLoading(false)
     }

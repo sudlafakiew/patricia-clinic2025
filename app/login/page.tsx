@@ -17,6 +17,18 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
+      // Demo mode: allow test@test.com with any password
+      if (email === 'test@test.com' && password) {
+        localStorage.setItem('user', JSON.stringify({
+          id: 'demo-user',
+          email: email,
+          user_metadata: { name: 'ผู้ใช้ทดสอบ' }
+        }))
+        toast.success('เข้าสู่ระบบสำเร็จ')
+        router.push('/dashboard')
+        return
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -82,7 +94,10 @@ export default function LoginPage() {
           <div className="mt-6 p-4 bg-blue-50 rounded-lg">
             <p className="text-sm text-blue-800 font-medium">ข้อมูลทดสอบ:</p>
             <p className="text-xs text-blue-600 mt-1">
-              กรุณาสร้างผู้ใช้ใน Supabase Authentication ก่อนเข้าสู่ระบบ
+              อีเมล: <span className="font-mono">test@test.com</span>
+            </p>
+            <p className="text-xs text-blue-600">
+              รหัสผ่าน: <span className="font-mono">ใช้อะไรก็ได้</span>
             </p>
           </div>
         </div>

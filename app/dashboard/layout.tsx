@@ -18,6 +18,14 @@ export default function DashboardLayout({
   }, [])
 
   const checkAuth = async () => {
+    // Check for demo user in localStorage (from test login)
+    const demoUser = localStorage.getItem('user')
+    if (demoUser) {
+      setLoading(false)
+      return
+    }
+
+    // Check for real Supabase session
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) {
       router.push('/login')

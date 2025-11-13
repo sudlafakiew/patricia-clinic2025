@@ -24,9 +24,11 @@ export default function ProductsPage() {
 
       if (error) throw error
       setProducts(data || [])
-    } catch (error) {
-      console.error('Error fetching products:', error)
-      toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า')
+    } catch (error: any) {
+      console.warn('Supabase connection failed, using mock data:', error.message)
+      const { getMockData } = await import('@/lib/mockData')
+      setProducts(getMockData('products'))
+      toast.success('ใช้ข้อมูลตัวอย่าง (ฐานข้อมูลไม่พร้อม)')
     } finally {
       setLoading(false)
     }

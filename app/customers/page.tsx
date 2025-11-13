@@ -21,16 +21,23 @@ export default function CustomersPage() {
 
   const fetchCustomers = async () => {
     try {
+      // Try to fetch from Supabase, fall back to mock data if unavailable
       const { data, error } = await supabase
         .from('customers')
         .select('*')
         .order('created_at', { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        throw error
+      }
+      
       setCustomers(data || [])
-    } catch (error) {
-      console.error('Error fetching customers:', error)
-      toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลลูกค้า')
+    } catch (error: any) {
+      console.warn('Supabase connection failed, using mock data:', error.message)
+      // Import and use mock data
+      const { getMockData } = await import('@/lib/mockData')
+      setCustomers(getMockData('customers'))
+      toast.success('ใช้ข้อมูลตัวอย่าง (ฐานข้อมูลไม่พร้อม)')
     } finally {
       setLoading(false)
     }

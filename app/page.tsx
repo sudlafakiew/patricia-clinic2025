@@ -13,6 +13,13 @@ export default function Home() {
   }, [])
 
   const checkUser = async () => {
+    // Check for demo user in localStorage (from test login)
+    const demoUser = localStorage.getItem('user')
+    if (demoUser) {
+      router.push('/dashboard')
+      return
+    }
+
     const { data: { session } } = await supabase.auth.getSession()
     if (session) {
       router.push('/dashboard')
